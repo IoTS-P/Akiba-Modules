@@ -138,6 +138,7 @@ dependencies {
     PublicConfiguration("org.apache.logging.log4j:log4j-core:2.24.3")
     PublicConfiguration("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2")
     PublicConfiguration(project(":akiba_framework"))
+    PublicConfiguration(fileTree(mapOf("dir" to "modules", "include" to listOf("*.jar"))))
     PublicConfiguration("io.ktor:ktor-server:3.1.3")
     PublicConfiguration("io.ktor:ktor-server-netty:3.1.3")
     testImplementation(kotlin("test"))
@@ -220,7 +221,7 @@ bfModules.forEach { module, ver ->
 fun recDepend(allTask: Task, undone: MutableList<Task>, selected: Task) {
     val moduleName = selected.name.substringAfter("moduleJar-")
     val dependencies = configurations[moduleName].resolve()
-        .filter { it.name.startsWith("amod") }
+        .filter { it.name.startsWith("amod") && !it.path.contains("/modules/") }
     if (dependencies.isEmpty()) {
         allTask.dependsOn(selected)
     } else {
