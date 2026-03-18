@@ -9,129 +9,328 @@ repositories {
     mavenCentral()
 }
 
-// Define modules
-val AddressSpaceAnalyzer by configurations.register("AddressSpaceAnalyzer")
-val ArchChecker by configurations.register("ArchChecker")
-val ARMBaseFinder by configurations.register("ARMBaseFinder")
-val ConvertFirmToELF by configurations.register("ConvertFirmToELF")
-val CortexEmulator by configurations.register("CortexEmulator")
-val EnhancedFunctionFinder by configurations.register("EnhancedFunctionFinder")
-val Entropy by configurations.register("Entropy")
-val EntryFinder by configurations.register("EntryFinder")
-val ExternalDynamicChecker by configurations.register("ExternalDynamicChecker")
-val Firmline by configurations.register("Firmline")
-val FirmlineBaseChecker by configurations.register("FirmlineBaseChecker")
-val FirmlineOnFuzzware by configurations.register("FirmlineOnFuzzware")
-val FirmlineOnFuzzwareReplay by configurations.register("FirmlineOnFuzzwareReplay")
-val FirmRCA by configurations.register("FirmRCA")
-val FirmXRay by configurations.register("FirmXRay")
-val FirmXRayOnFuzzware by configurations.register("FirmXRayOnFuzzware")
-val FirmXRayOnFuzzwareReplay by configurations.register("FirmXRayOnFuzzwareReplay")
-val FunctionFinder by configurations.register("FunctionFinder")
-val FuzzwareEmu by configurations.register("FuzzwareEmu")
-val FuzzwareGateway by configurations.register("FuzzwareGateway")
-val FuzzwarePipeline by configurations.register("FuzzwarePipeline")
-val FuzzwareReplay by configurations.register("FuzzwareReplay")
-val FuzzwareStat by configurations.register("FuzzwareStat")
-val HasRTOS by configurations.register("HasRTOS")
-val HoedurFuzz by configurations.register("HoedurFuzz")
-val HoedurStatistics by configurations.register("HoedurStatistics")
-val IoTGeneralStructures by configurations.register("IoTGeneralStructures")
-val MultiFuzz by configurations.register("MultiFuzz")
-val ProgramInitialization by configurations.register("ProgramInitialization")
-val ProgramServer by configurations.register("ProgramServer")
-val RBaseFind by configurations.register("RBaseFind")
-val StartupDynamicChecker by configurations.register("StartupDynamicChecker")
-val StringAdder by configurations.register("StringAdder")
-val StringBaseFinder by configurations.register("StringBaseFinder")
-
-// A module that is used for testing
-val TestModule by configurations.register("TestModule")
-// A test module as a dependency of TestModule
-val TestModule2 by configurations.register("TestModule2")
-// A test module for testing module db tables
-val TestModule3 by configurations.register("TestModule3")
-
 val PublicConfiguration by configurations.register("Public")
 
-val bfModules = mapOf(         // Register module versions here
-    AddressSpaceAnalyzer to "1.2",
-    ArchChecker to "1.0",
-    ARMBaseFinder to "1.3",
-    ConvertFirmToELF to "1.2",
-    CortexEmulator to "1.0",
-    EnhancedFunctionFinder to "1.0",
-    Entropy to "1.0",
-    EntryFinder to "1.1",
-    ExternalDynamicChecker to "1.1",
-    Firmline to "1.0",
-    FirmlineBaseChecker to "1.0",
-    FirmlineOnFuzzware to "1.0",
-    FirmlineOnFuzzwareReplay to "1.0",
-    FirmRCA to "1.0",
-    FirmXRay to "1.0",
-    FirmXRayOnFuzzware to "1.0",
-    FirmXRayOnFuzzwareReplay to "1.0",
-    FunctionFinder to "1.2",
-    FuzzwareEmu to "1.1",
-    FuzzwareGateway to "1.1",
-    FuzzwarePipeline to "1.0",
-    FuzzwareReplay to "1.0",
-    FuzzwareStat to "1.0",
-    HasRTOS to "1.1",
-    HoedurFuzz to "1.0",
-    HoedurStatistics to "1.0",
-    IoTGeneralStructures to "1.0",
-    MultiFuzz to "1.0",
-    ProgramInitialization to "1.0",
-    ProgramServer to "1.0",
-    RBaseFind to "1.0",
-    StartupDynamicChecker to "1.1",
-    StringAdder to "1.0",
-    StringBaseFinder to "1.1",
+data class ModuleMetadata(
+    val moduleName: String,         // All codes should be located in `src/$moduleName/`
+    val mainClassPath: String,      // Full class path of main class
+    val authors: List<String>,
+    val version: String,
+    val briefDescription: String
+) {
+    val doc: Map<String, String>   // Key: Documentation language, Value: Documentation
+    val configuration by configurations.register(moduleName)
 
-    TestModule to "1.0",
-    TestModule2 to "1.0",
-    TestModule3 to "1.0"
+    init {
+        val d = mutableMapOf<String, String>()
+        for ((lang, docDir) in ModuleMetadata.docDir) {
+            val docFile = projectDir.resolve("$docDir/$moduleName.md")
+            if (docFile.exists())
+                d[lang] = docFile.readText()
+        }
+        doc = d
+    }
+
+    companion object {
+        val docDir = mapOf(
+            "en" to "usages",
+            "zh" to "usages_zh"
+        )
+    }
+}
+
+/***********************************************************************************************************************
+ * MODULE DEFINITION START, DO NOT CHANGE CODES OUTSIDE THIS BLOCK
+ ***********************************************************************************************************************/
+
+// Append your module here
+val localModules = listOf(         // Register module metadata here: authors, version, brief description
+    ModuleMetadata(
+        moduleName = "AddressSpaceAnalyzer",
+        mainClassPath = "org.iotsplab.akiba.process.AddressSpaceAnalyzer",
+        authors = listOf("Hornos3"),
+        version = "1.2",
+        briefDescription = "Firmware address space resolver"
+    ),
+    ModuleMetadata(
+        moduleName = "ArchChecker",
+        mainClassPath = "org.iotsplab.akiba.process.ArchChecker",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Check if the arch of a binary file is right"
+    ),
+    ModuleMetadata(
+        moduleName = "ARMBaseFinder",
+        mainClassPath = "org.iotsplab.akiba.process.ARMBaseFinder",
+        authors = listOf("Hornos3"),
+        version = "1.3",
+        briefDescription = "Find the base address of firmware files"
+    ),
+    ModuleMetadata(
+        moduleName = "ConvertFirmToELF",
+        mainClassPath = "org.iotsplab.akiba.process.ConvertFirmToELF",
+        authors = listOf("Hornos3"),
+        version = "1.2",
+        briefDescription = "Convert firmware bin files to ELF files"
+    ),
+    ModuleMetadata(           // DEPRECATED
+        moduleName = "CortexEmulator",
+        mainClassPath = "org.iotsplab.akiba.process.CortexEmulator",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Ghidra emulator for ARM Cortex-M binary files"
+    ),
+    ModuleMetadata(
+        moduleName = "EnhancedFunctionFinder",
+        mainClassPath = "org.iotsplab.akiba.process.EnhancedFunctionFinder",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Function finder using Ghidra's machine-learning methods"
+    ),
+    ModuleMetadata(
+        moduleName = "Entropy",
+        mainClassPath = "org.iotsplab.akiba.process.Entropy",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Get the entropy of a file"
+    ),
+    ModuleMetadata(
+        moduleName = "EntryFinder",
+        mainClassPath = "org.iotsplab.akiba.process.EntryFinder",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Try to find the entry point of a firmware file"
+    ),
+    ModuleMetadata(
+        moduleName = "ExternalDynamicChecker",
+        mainClassPath = "org.iotsplab.akiba.process.ExternalDynamicChecker",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Check the validity of entry points from external sources"
+    ),
+    ModuleMetadata(
+        moduleName = "Firmline",
+        mainClassPath = "org.iotsplab.akiba.process.Firmline",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Firmline's runner, a static analysis tool of firmware files"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmlineBaseChecker",
+        mainClassPath = "org.iotsplab.akiba.process.FirmlineBaseChecker",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Check if base addresses got from Firmline is right"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmlineOnFuzzware",
+        mainClassPath = "org.iotsplab.akiba.process.FirmlineOnFuzzware",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run fuzzing tools Fuzzware using Firmline's data"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmlineOnFuzzwareReplay",
+        mainClassPath = "org.iotsplab.akiba.process.FirmlineOnFuzzwareReplay",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run fuzzing tools Fuzzware to replay crash inputs from fuzz instances using Firmline's data"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmRCA",
+        mainClassPath = "org.iotsplab.akiba.process.FirmRCA",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "FirmRCA's runner, a post-fuzzing analysis tool to locate core reasons of crashes"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmXRay",
+        mainClassPath = "org.iotsplab.akiba.process.FirmXRay",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "FirmXRay's runner, a static analysis tool to get base addresses of firmware files"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmXRayOnFuzzware",
+        mainClassPath = "org.iotsplab.akiba.process.FirmXRayOnFuzzware",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run fuzzing tools Fuzzware using FirmXRay's data"
+    ),
+    ModuleMetadata(
+        moduleName = "FirmXRayOnFuzzwareReplay",
+        mainClassPath = "org.iotsplab.akiba.process.FirmXRayOnFuzzwareReplay",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run fuzzing tools Fuzzware to replay crash inputs from fuzz instances using FirmXRay's data"
+    ),
+    ModuleMetadata(
+        moduleName = "FunctionFinder",
+        mainClassPath = "org.iotsplab.akiba.process.FunctionFinder",
+        authors = listOf("Hornos3"),
+        version = "1.2",
+        briefDescription = "Find and define functions that may be missed by Ghidra auto-analysis processes"
+    ),
+    ModuleMetadata(
+        moduleName = "FuzzwareEmu",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwareEmu",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Run emulation from Fuzzware to emulate a firmware file"
+    ),
+    ModuleMetadata(
+        moduleName = "FuzzwareGateway",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwareGateway",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Generate Fuzzware configs and do some other required works before fuzzing"
+    ),
+    ModuleMetadata(
+        moduleName = "FuzzwarePipeline",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwarePipeline",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run Fuzzware fuzzing, a firmware fuzzing tool"
+    ),
+    ModuleMetadata(
+        moduleName = "FuzzwareReplay",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwareReplay",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run Fuzzware replay to replay crash inputs from fuzz instances"
+    ),
+    ModuleMetadata(
+        moduleName = "FuzzwareStat",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwareStat",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Get status information of fuzzing instances of Fuzzware"
+    ),
+    ModuleMetadata(
+        moduleName = "HasRTOS",
+        mainClassPath = "org.iotsplab.akiba.process.HasRTOS",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Confirm whether an ARM Cortex-M firmware file has an RTOS or not"
+    ),
+    ModuleMetadata(
+        moduleName = "HoedurFuzz",
+        mainClassPath = "org.iotsplab.akiba.process.HoedurFuzz",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run Hoedur fuzzing, a firmware fuzzing tool"
+    ),
+    ModuleMetadata(
+        moduleName = "HoedurStatistics",
+        mainClassPath = "org.iotsplab.akiba.process.HoedurStatistics",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Get status information of fuzzing instances of Hoedur"
+    ),
+    ModuleMetadata(
+        moduleName = "IoTGeneralStructures",
+        mainClassPath = "org.iotsplab.akiba.process.IoTGeneralStructures",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Contains definitions of classes that are often used in firmware analysis"
+    ),
+    ModuleMetadata(
+        moduleName = "MultiFuzz",
+        mainClassPath = "org.iotsplab.akiba.process.MultiFuzz",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Run Multifuzz fuzzing, a firmware fuzzing tool"
+    ),
+    ModuleMetadata(
+        moduleName = "ProgramInitialization",
+        mainClassPath = "org.iotsplab.akiba.process.ProgramInitialization",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Initialize a Ghidra program through Ghidra's auto-analysis"
+    ),
+    ModuleMetadata(
+        moduleName = "ProgramServer",
+        mainClassPath = "org.iotsplab.akiba.process.ProgramServer",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Help find functions through addresses more quickly"
+    ),
+    ModuleMetadata(
+        moduleName = "RBaseFind",
+        mainClassPath = "org.iotsplab.akiba.process.RBaseFind",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "rbasefind runner, a rust tool to find base addresses of firmware files"
+    ),
+    ModuleMetadata(
+        moduleName = "StartupDynamicChecker",
+        mainClassPath = "org.iotsplab.akiba.process.StartupDynamicChecker",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Check the validity of the base address and the entry point of a firmware file"
+    ),
+    ModuleMetadata(
+        moduleName = "StringAdder",
+        mainClassPath = "org.iotsplab.akiba.process.StringAdder",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Find and define strings that may be missed by Ghidra auto-analysis"
+    ),
+    ModuleMetadata(
+        moduleName = "StringBaseFinder",
+        mainClassPath = "org.iotsplab.akiba.process.StringBaseFinder",
+        authors = listOf("Hornos3"),
+        version = "1.1",
+        briefDescription = "Find the base address of a firmware file through string addresses matching"
+    ),
 )
 
+val lc: Map<String, Configuration> = localModules.associate {
+    it.moduleName to it.configuration
+}
+
+// Modules that are deprecated and will not be built
+val deprecatedModules: List<String> = listOf(
+    "CortexEmulator"
+)
+
+// Modules that are under development and will not be built
 val underDevelopmentModules = listOf(
     "EnhancedFunctionFinder"
 )
 
+// Add your dependencies here
 dependencies {
     // Module-specified dependencies
-    ConvertFirmToELF("net.fornwall:jelf:0.9.0")
-    FirmlineBaseChecker("org.xerial:sqlite-jdbc:3.51.1.0")
-    FuzzwareReplay("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-    HoedurStatistics("com.github.luben:zstd-jni:1.4.9-2")
-    HoedurStatistics("org.yaml:snakeyaml:2.4")
-    HoedurStatistics("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.0")
+    (lc["ConvertFirmToELF"]!!)("net.fornwall:jelf:0.9.0")
+    (lc["FirmlineBaseChecker"]!!)("org.xerial:sqlite-jdbc:3.51.1.0")
+    (lc["FuzzwareReplay"]!!)("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
+    (lc["HoedurStatistics"]!!)("com.github.luben:zstd-jni:1.4.9-2")
+    (lc["HoedurStatistics"]!!)("org.yaml:snakeyaml:2.4")
+    (lc["HoedurStatistics"]!!)("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.0")
 
     // You can also add other modules as dependencies
-    AddressSpaceAnalyzer(moduleDependency(listOf(ARMBaseFinder, IoTGeneralStructures)))
-    ArchChecker(moduleDependency(listOf(ProgramInitialization)))
-    ARMBaseFinder(moduleDependency(listOf(IoTGeneralStructures, ProgramServer, StartupDynamicChecker)))
-    ConvertFirmToELF(moduleDependency(listOf(IoTGeneralStructures)))
-    CortexEmulator(moduleDependency(listOf(ARMBaseFinder)))
-    ExternalDynamicChecker(moduleDependency(listOf(ARMBaseFinder, StartupDynamicChecker)))
-    FirmlineBaseChecker(moduleDependency(listOf(ARMBaseFinder, StartupDynamicChecker)))
-    FirmlineOnFuzzware(moduleDependency(listOf(FuzzwareGateway, FuzzwarePipeline)))
-    FirmlineOnFuzzwareReplay(moduleDependency(listOf(FuzzwareGateway)))
-    FirmRCA(moduleDependency(listOf(FuzzwareGateway, FuzzwareReplay)))
-    FirmXRay(moduleDependency(listOf(ARMBaseFinder, StartupDynamicChecker)))
-    FirmXRayOnFuzzware(moduleDependency(listOf(FuzzwareGateway, FuzzwarePipeline)))
-    FirmXRayOnFuzzwareReplay(moduleDependency(listOf(FuzzwareGateway)))
-    FunctionFinder(moduleDependency(listOf(ARMBaseFinder)))
-    FuzzwareEmu(moduleDependency(listOf(FuzzwareGateway)))
-    FuzzwareGateway(moduleDependency(listOf(ARMBaseFinder)))
-    FuzzwarePipeline(moduleDependency(listOf(FuzzwareGateway)))
-    FuzzwareReplay(moduleDependency(listOf(FuzzwareGateway)))
-    HoedurFuzz(moduleDependency(listOf(FuzzwareGateway)))
-    MultiFuzz(moduleDependency(listOf(FuzzwareGateway, HoedurFuzz)))
-    StartupDynamicChecker(moduleDependency(listOf(IoTGeneralStructures)))
-
-    TestModule(moduleDependency(listOf(TestModule2)))
+    (lc["AddressSpaceAnalyzer"]!!)(moduleDependency(listOf("ARMBaseFinder", "IoTGeneralStructures")))
+    (lc["ArchChecker"]!!)(moduleDependency(listOf("ProgramInitialization")))
+    (lc["ARMBaseFinder"]!!)(moduleDependency(listOf("IoTGeneralStructures", "ProgramServer", "StartupDynamicChecker")))
+    (lc["ConvertFirmToELF"]!!)(moduleDependency(listOf("IoTGeneralStructures")))
+    (lc["CortexEmulator"]!!)(moduleDependency(listOf("ARMBaseFinder")))
+    (lc["ExternalDynamicChecker"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
+    (lc["FirmlineBaseChecker"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
+    (lc["FirmlineOnFuzzware"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwarePipeline")))
+    (lc["FirmlineOnFuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["FirmRCA"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwareReplay")))
+    (lc["FirmXRay"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
+    (lc["FirmXRayOnFuzzware"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwarePipeline")))
+    (lc["FirmXRayOnFuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["FunctionFinder"]!!)(moduleDependency(listOf("ARMBaseFinder")))
+    (lc["FuzzwareEmu"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["FuzzwareGateway"]!!)(moduleDependency(listOf("ARMBaseFinder")))
+    (lc["FuzzwarePipeline"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["FuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["HoedurFuzz"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["MultiFuzz"]!!)(moduleDependency(listOf("FuzzwareGateway", "HoedurFuzz")))
+    (lc["StartupDynamicChecker"]!!)(moduleDependency(listOf("IoTGeneralStructures")))
 
     // public dependencies
     PublicConfiguration("org.apache.logging.log4j:log4j-api:2.24.3")
@@ -144,10 +343,7 @@ dependencies {
     testImplementation(kotlin("test"))
 }
 
-fun moduleDependency(modules: List<Configuration>): ConfigurableFileCollection {
-    return files(modules.map { "build/libs/amod-${it.name}-${bfModules[it]}.jar" }.toTypedArray())
-}
-
+// If there are any finalize tasks in some modules, add them here
 val finalizeTasks: Map<String, Jar.() -> Unit> = mapOf(
     // Add additional tasks here, like copying files
     "ConvertFirmToELF" to {
@@ -158,35 +354,47 @@ val finalizeTasks: Map<String, Jar.() -> Unit> = mapOf(
     }
 )
 
-bfModules.forEach { module, ver ->
-    val moduleName = module.name
+/***********************************************************************************************************************
+ * MODULE DEFINITION END
+ ***********************************************************************************************************************/
+
+
+fun moduleDependency(modules: List<String>): ConfigurableFileCollection {
+    return files(modules.map { name ->
+        val metadata = localModules.first { it.moduleName == name }
+        "build/libs/amod-$name-${metadata.version}.jar"
+    }.toTypedArray())
+}
+
+localModules.forEach { module ->
     val globalGroup = group
 
-    configurations[moduleName].extendsFrom(configurations["Public"])
+    module.configuration.extendsFrom(configurations["Public"])
 
-    sourceSets.create(moduleName) {
-        kotlin.srcDir("src/${moduleName}/kotlin")
+    sourceSets.create(module.moduleName) {
+        kotlin.srcDir("src/${module.moduleName}/kotlin")
 
-        compileClasspath += configurations[moduleName]
-        runtimeClasspath += configurations[moduleName]
+        compileClasspath += module.configuration
+        runtimeClasspath += module.configuration
     }
 
     // Exclude modules that are under development
-    if (underDevelopmentModules.firstOrNull { it == moduleName } == null) {
-        tasks.register<Jar>("moduleJar-$moduleName") {
+    if (underDevelopmentModules.firstOrNull { it == module.moduleName } == null
+        && deprecatedModules.firstOrNull { it == module.moduleName } == null) {
+        tasks.register<Jar>("moduleJar-${module.moduleName}") {
             group = globalGroup as String
-            archiveBaseName.set("amod-$moduleName")
-            archiveVersion.set(ver)
+            archiveBaseName.set("amod-${module.moduleName}")
+            archiveVersion.set(module.version)
 
             duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
-            from(sourceSets[moduleName].output) {
+            from(sourceSets[module.moduleName].output) {
                 duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             }
 
             // Pack all jars except Akiba and Ghidra
             from(
-                configurations[moduleName].resolve()
+                module.configuration.resolve()
                     .filter {
                         it.name.endsWith("jar") &&
                                 // exclude all common jar
@@ -201,7 +409,7 @@ bfModules.forEach { module, ver ->
             exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA", "**/.*/**")
 
             // Write dependency class names into 'META-INF/module-deps'
-            val dependencyClassNames = configurations[moduleName].resolve()
+            val dependencyClassNames = module.configuration.resolve()
                 .filter { it.name.startsWith("amod") }
                 .map { group + "." + it.name.substringAfter("amod-").substringBefore("-") }
             val depFile = temporaryDir.resolve("META-INF/module-deps")
@@ -210,10 +418,23 @@ bfModules.forEach { module, ver ->
             from(depFile) { into("META-INF") }
 
             manifest {
-                attributes["Main-Class"] = "$group.$moduleName"
+                attributes["Main-Class"] = module.mainClassPath
+                attributes["Module-Name"] = module.moduleName
+                attributes["Module-Version"] = module.version
+                attributes["Module-Author"] = module.authors.joinToString(", ")
+                attributes["Module-Description"] = module.briefDescription
             }
 
-            finalizeTasks[moduleName]?.invoke(this)
+            // Create directory `docs` and write documentation of different languages into different files
+            val docsDir = temporaryDir.resolve("docs")
+            docsDir.mkdirs()
+            module.doc.forEach { (lang, text) ->
+                docsDir.resolve("$lang.md").writeText(text)
+            }
+
+            from(docsDir) { into("docs") }
+
+            finalizeTasks[module.moduleName]?.invoke(this)
         }
     }
 }
