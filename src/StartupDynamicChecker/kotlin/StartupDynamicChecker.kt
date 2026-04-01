@@ -70,7 +70,7 @@ class StartupDynamicChecker(
 
     companion object {
         const val TOTAL_EXECUTION_THRESHOLD: Long = 10000
-        const val DISTINCT_INSTRUCTION_THRESHOLD: Int = 20
+        const val DISTINCT_INSTRUCTION_THRESHOLD: Int = 10
 
         class CheckerEmulator(
             program: Program,
