@@ -3,8 +3,14 @@ package org.iotsplab.akiba.process
 import ghidra.program.flatapi.FlatProgramAPI
 import ghidra.program.model.address.Address
 import ghidra.program.model.listing.Program
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
 import org.apache.logging.log4j.Level
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.process.structure.ArmcmIVT
@@ -18,6 +24,7 @@ import kotlin.io.path.isDirectory
 
 @WithTableColumn("base_address", "BIGINT")
 @WithTableColumn("entry_valid", "TEXT")
+@WithTableColumn("max_memory_kb", "BIGINT")
 @WithConfigClass(FirmXRayConfig::class)
 @IgnoreRuntimeTimeout
 class FirmXRay (
@@ -49,14 +56,16 @@ class FirmXRay (
             throw IllegalArgumentException("Invalid FirmXRay root directory")
 
             try {
-                val base = runFirmXRay()
+                val result = runFirmXRay()
+                val base = result.base
+                val maxMemoryKb = result.maxMemoryKb
 
                 // Added for enhanced FirmXRay, If you want to run original FirmXRay, please comment out the below lines
                 // Enhanced FirmXRay: https://github.com/MCUSec/RealworldFirmware/tree/main/FirmXRay
                 if (base == -1L) {
                     logger.error("FirmXRay failed to get base address")
                     updateErr("failed")
-                    updateData(mapOf("base_address" to null, "entry_valid" to null))
+                    updateData(mapOf("base_address" to null, "entry_valid" to null, "max_memory_kb" to maxMemoryKb))
                     failureSign = FAILED
                     return
                 }
@@ -66,22 +75,26 @@ class FirmXRay (
                 updateData(
                     mapOf(
                         "base_address" to base,
-                        "entry_valid" to if (entryValid) "valid" else "invalid"
+                        "entry_valid" to if (entryValid) "valid" else "invalid",
+                        "max_memory_kb" to maxMemoryKb
                     )
                 )
             } catch (e: Exception) {
                 logger.error("Failed to run FirmXRay: ${e.message}")
+                if (logger.isDebugEnabled)
+                    e.printStackTrace()
                 updateErr("failed")
                 updateData(
-                    mapOf("base_address" to null, "entry_valid" to null)
+                    mapOf("base_address" to null, "entry_valid" to null, "max_memory_kb" to null)
                 )
                 failureSign = FAILED
             }
     }
 
     @Throws(IllegalArgumentException::class)
-    private suspend fun runFirmXRay(): Long = coroutineScope {
+    private suspend fun runFirmXRay(): FirmXRayRunResult = coroutineScope {
         firmxrayLock.lock()
+        logger.debug("Lock acquired, holds: ${firmxrayLock.isLocked}")
 
         try {
             val firmxrayCmd = "cd ${firmxrayRoot.absolutePathString()} && " +
@@ -92,36 +105,57 @@ class FirmXRay (
                 .redirectErrorStream(true)
             val process: Process = builder.start()
             var base: Long? = null
+            var maxMemoryKb = 0L
+            val pid = process.pid()
 
-            val outReader = launch {
-                process.inputStream.bufferedReader().use { reader ->
-                    var line: String?
-                    while (reader.readLine().also { line = it } != null) {
-                        line ?: continue
-                        logger.trace(line)
+            val outReader = CoroutineScope(coroutineContext).launch {
+                withContext(Dispatchers.IO) {
+                    process.inputStream.bufferedReader().use { reader ->
+                        while (true) {
+                            val currentLine = reader.readLine() ?: break
+                            logger.trace(currentLine)
 
-                        if (line.contains("Base: 0x")) {
-                            base = line.substringAfter("Base: 0x").toLong(16)
-                        } else if (line.startsWith("Result already exist for ")) {
-                            val path = line.substringAfter("Result already exist for ")
-                            base = firmxrayOutputDir.resolve(path).toFile().readLines().filter {
-                                it.contains("Base: 0x")
-                            }.map {
-                                it.substringAfter("Base: 0x").toLong(16)
-                            }.first()
+                            if (currentLine.contains("Base: 0x")) {
+                                base = currentLine.substringAfter("Base: 0x").toLong(16)
+                            } else if (currentLine.startsWith("Result already exist for ")) {
+                                val path = currentLine.substringAfter("Result already exist for ")
+                                base = firmxrayOutputDir.resolve(path).toFile().readLines().filter {
+                                    it.contains("Base: 0x")
+                                }.map {
+                                    it.substringAfter("Base: 0x").toLong(16)
+                                }.first()
+                            }
                         }
                     }
                 }
             }
 
-            outReader.start()
-            outReader.join()
+            val memoryMonitor = CoroutineScope(coroutineContext).launch {
+                logger.debug("Memory monitor started")
+                while (isActive && process.isAlive) {
+                    val currentMemoryKb = getProcessMemoryKb(pid)
+                    if (currentMemoryKb != null && currentMemoryKb > maxMemoryKb) {
+                        maxMemoryKb = currentMemoryKb
+                    }
+                    delay(5_000)
+                }
+                val finalMemoryKb = getProcessMemoryKb(pid)
+                if (finalMemoryKb != null && finalMemoryKb > maxMemoryKb) {
+                    maxMemoryKb = finalMemoryKb
+                }
+            }
 
-            base ?: throw IllegalStateException("FirmXRay failed to find base address")
-            return@coroutineScope base
+            outReader.join()
+            memoryMonitor.join()
+
+            val finalBase = base ?: throw IllegalStateException("FirmXRay failed to find base address")
+            return@coroutineScope FirmXRayRunResult(base = finalBase, maxMemoryKb = maxMemoryKb)
         } catch (e: Exception) {
+            if (logger.isDebugEnabled)
+                e.printStackTrace()
             throw e
         } finally {
+            logger.debug("Before unlock, holds: ${firmxrayLock.isLocked}")
             firmxrayLock.unlock()
         }
     }
@@ -164,6 +198,28 @@ class FirmXRay (
         const val STACK_POINTER = 0xFFFF_8000
 
         // FirmXRay does not support parallel execution, or the FirmXRay program may cause unexpected failures
-        val firmxrayLock: ReentrantLock = ReentrantLock()
+        private val firmxrayLock: Mutex = Mutex()
+    }
+
+    private data class FirmXRayRunResult(
+        val base: Long,
+        val maxMemoryKb: Long
+    )
+
+    private fun getProcessMemoryKb(pid: Long): Long? {
+        val statusFile = Path.of("/proc/$pid/status").toFile()
+        if (!statusFile.exists()) return null
+
+        val vmRssLine = statusFile.readLines().firstOrNull { it.startsWith("VmRSS:") } ?: run {
+            logger.warn("Failed to get memory cost (Unable to find VmRSS line in /proc/$pid/status)")
+            return null
+        }
+        logger.debug(vmRssLine)
+        val memCost = vmRssLine.substringAfter("VmRSS:").substringBefore("kB").trim().toLongOrNull()
+        if (memCost == null)
+            logger.warn("Failed to get memory cost")
+        else
+            logger.debug("Process $pid memory cost: $memCost KB")
+        return memCost
     }
 }
