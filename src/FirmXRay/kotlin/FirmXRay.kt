@@ -214,7 +214,6 @@ class FirmXRay (
             logger.warn("Failed to get memory cost (Unable to find VmRSS line in /proc/$pid/status)")
             return null
         }
-        logger.debug(vmRssLine)
         val memCost = vmRssLine.substringAfter("VmRSS:").substringBefore("kB").trim().toLongOrNull()
         if (memCost == null)
             logger.warn("Failed to get memory cost")

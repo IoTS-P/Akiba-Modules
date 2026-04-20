@@ -10,5 +10,7 @@ data class FirmlineConfig (
     // Firmline requires Python3 of 3.10/3.11, earlier or later versions may cause errors
     var pythonRoot: String = "/usr/bin/python3",
     var ghidraHome: String? = null,
-    var timeoutForEach: Int = 600
+    var timeoutForEach: Int = 600,
+    // If memory cost of Firmline exceeds this value, Firmline will be killed immediately and regarded as failed
+    var memoryCostMeltdownThreshold: Int = 8_000_000
 )
