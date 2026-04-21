@@ -50,6 +50,8 @@ class FirmXRay (
     val firmxrayRoot: Path = Path.of(conf.firmxrayRoot!!)
     val firmxrayOutputDir: Path = firmxrayRoot.resolve("output")
 
+    var maxMemoryKb = 0L
+
     @Throws(IllegalArgumentException::class, IllegalStateException::class)
     override suspend fun startProcess() {
         if (!firmxrayRoot.isDirectory())
@@ -85,7 +87,7 @@ class FirmXRay (
                     e.printStackTrace()
                 updateErr("failed")
                 updateData(
-                    mapOf("base_address" to null, "entry_valid" to null, "max_memory_kb" to null)
+                    mapOf("base_address" to null, "entry_valid" to null, "max_memory_kb" to maxMemoryKb)
                 )
                 failureSign = FAILED
             }
@@ -105,7 +107,6 @@ class FirmXRay (
                 .redirectErrorStream(true)
             val process: Process = builder.start()
             var base: Long? = null
-            var maxMemoryKb = 0L
             val pid = process.pid()
 
             val outReader = CoroutineScope(coroutineContext).launch {

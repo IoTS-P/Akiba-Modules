@@ -119,7 +119,7 @@ class FuzzwarePipeline (
 
                     if (line.contains("Shutdown requested!")) {
                         logger.info("Timeout get, destroyed forcibly")
-                        swipeFuzzwareProcesses(logger, process)
+                        killProcessTree(process.pid())
                         break
                     }
 
@@ -205,36 +205,81 @@ class FuzzwarePipeline (
             }
         }
 
-        fun swipeFuzzwareProcesses(logger: Logger, p: Process) {
-            p.destroyForcibly()
-            p.waitFor()
-
-            logger.info("Clearing orphan fuzzware process...")
-            var hasOrphan = true
-
-            while (hasOrphan) {
-                // Make sure all subprocesses are killed (kill orphan processes)
-                hasOrphan = false
-                val cmd = "/bin/ps -ef"
-                val process = ProcessBuilder(cmd.split(" ")).start()
-                val outLines = process.inputStream.bufferedReader().readLines()
-                process.waitFor()
-
-                val format = Regex("^.+\\s+([0-9]+)\\s+([0-9]+)\\s+([0-9]+)\\s+.+$")
-                outLines.forEach { line ->
-                    // Fuzzware use redis, so we need to kill the redis server process, or they may occupy many ports
-                    if (!line.contains("fuzzware") && !line.contains("redis-server"))
-                        return@forEach
-                    format.matchEntire(line) ?. let {
-                        val ppid = it.groupValues[2].toLong()
-                        if (ppid == 1L) {
-                            hasOrphan = true
-                            logger.info("kill: ${it.groupValues[1]}")
-                            ProcessBuilder("kill", "-9", it.groupValues[1]).start().waitFor()
+        private fun getChildPids(pid: Long): List<Long> {
+            val childPids = mutableListOf<Long>()
+            val tasksDir = Path.of("/proc/$pid/task")
+            if (!tasksDir.toFile().exists()) return childPids
+            try {
+                tasksDir.toFile().listFiles()?.forEach { taskDir ->
+                    val childrenFile = taskDir.resolve("children")
+                    if (childrenFile.exists()) {
+                        childrenFile.readText().split("\\s+".toRegex()).filter { it.isNotEmpty() }.forEach { childPidStr ->
+                            val childPid = childPidStr.toLongOrNull() ?: return@forEach
+                            childPids.add(childPid)
+                            childPids.addAll(getChildPids(childPid))
                         }
                     }
                 }
+            } catch (_: Exception) {
+                // Ignore permission errors or other exceptions
+            }
+            return childPids
+        }
+
+        fun killProcessTree(pid: Long) {
+            val stoppedPids = mutableSetOf<Long>()
+            val toProcess = ArrayDeque<Long>()
+            toProcess.add(pid)
+            while (!toProcess.isEmpty()) {
+                val currentPid = toProcess.removeFirst()
+                if (stoppedPids.contains(currentPid)) continue
+                try {
+                    Runtime.getRuntime().exec(arrayOf("kill", "-STOP", currentPid.toString())).waitFor()
+                    stoppedPids.add(currentPid)
+                } catch (_: Exception) { }
+                getChildPids(currentPid).forEach { childPid ->
+                    if (!stoppedPids.contains(childPid)) {
+                        toProcess.add(childPid)
+                    }
+                }
+            }
+            stoppedPids.forEach { p ->
+                try {
+                    Runtime.getRuntime().exec(arrayOf("kill", "-9", p.toString())).waitFor()
+                } catch (_: Exception) { }
             }
         }
+
+//        fun swipeFuzzwareProcesses(logger: Logger, p: Process) {
+//            p.destroyForcibly()
+//            p.waitFor()
+//
+//            logger.info("Clearing orphan fuzzware process...")
+//            var hasOrphan = true
+//
+//            while (hasOrphan) {
+//                // Make sure all subprocesses are killed (kill orphan processes)
+//                hasOrphan = false
+//                val cmd = "/bin/ps -ef"
+//                val process = ProcessBuilder(cmd.split(" ")).start()
+//                val outLines = process.inputStream.bufferedReader().readLines()
+//                process.waitFor()
+//
+//                val format = Regex("^.+\\s+([0-9]+)\\s+([0-9]+)\\s+([0-9]+)\\s+.+$")
+//                outLines.forEach { line ->
+//                    // Fuzzware use redis, so we need to kill the redis server process, or they may occupy many ports
+//                    if (!line.contains("fuzzware") && !line.contains("redis-server"))
+//                        return@forEach
+//                    format.matchEntire(line) ?. let {
+//                        val ppid = it.groupValues[2].toLong()
+//                        if (ppid == 1L) {
+//                            hasOrphan = true
+//                            logger.info("kill: ${it.groupValues[1]}")
+//                            ProcessBuilder("kill", "-9", it.groupValues[1]).start().waitFor()
+//                        }
+//                    }
+//                }
+//            }
+//        }
     }
 }

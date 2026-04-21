@@ -6,9 +6,8 @@ import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.apache.logging.log4j.Level
-import org.iotsplab.akiba.client.database.DatabaseClient
+import org.iotsplab.akiba.data.database.DatabaseClient
 import org.iotsplab.akiba.managers.ConfigManager.mainConf
-import org.iotsplab.akiba.managers.DefaultDatabaseOperator
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.process.FirmRCA.Companion.CLASSIFY_VIEW_SQL
 import org.iotsplab.akiba.process.FirmRCA.Companion.CREATE_VIEW_SQL
@@ -19,10 +18,8 @@ import org.iotsplab.akiba.utils.ProcedureArgumentsDeserializer.allModules
 import org.iotsplab.akiba.utils.WithConfigClass
 import java.nio.file.Files
 import java.nio.file.Path
-import java.sql.ResultSet
 import java.util.jar.JarFile
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.copyTo
 import kotlin.io.path.deleteIfExists
@@ -157,9 +154,8 @@ class FirmRCA (
         ))
     }
 
-    private fun filterInputs(): List<Path> {
-        val data = DatabaseClient.getModuleData(
-            id.toLong(), "firmrca_classified_results", listOf("path"))
+    private suspend fun filterInputs(): List<Path> {
+        val data = getTaskData("firmrca_classified_results.path") as Map<*, *>
 
         @Suppress("UNCHECKED_CAST")
         val list = (data["path"] as List<String>).map { Path.of(it) } // TODO: Need tests
