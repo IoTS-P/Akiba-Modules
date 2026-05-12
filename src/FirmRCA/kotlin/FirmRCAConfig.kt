@@ -14,6 +14,7 @@ data class FirmRCAConfig (
     // true, logs will also be deleted no matter what `deleteLogOnFinish` is set to
     var deleteAllFilesOnFinish: Boolean = true,
     var classifiedMode: Boolean = true,     // Test before classifying the test cases to reduce the number of them
+    var classifySource: String? = "firmrca_classified_replays.paths",
     var timeoutForEach: Int = 1800,       // seconds
     var specifiedTestCases: List<String>? = null,
     var maximumInsn: Int = 100000,      // Max instruction to backward taint analysis. If 0 or negative, no limit

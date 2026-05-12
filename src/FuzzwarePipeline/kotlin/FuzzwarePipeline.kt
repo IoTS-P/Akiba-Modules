@@ -249,37 +249,5 @@ class FuzzwarePipeline (
                 } catch (_: Exception) { }
             }
         }
-
-//        fun swipeFuzzwareProcesses(logger: Logger, p: Process) {
-//            p.destroyForcibly()
-//            p.waitFor()
-//
-//            logger.info("Clearing orphan fuzzware process...")
-//            var hasOrphan = true
-//
-//            while (hasOrphan) {
-//                // Make sure all subprocesses are killed (kill orphan processes)
-//                hasOrphan = false
-//                val cmd = "/bin/ps -ef"
-//                val process = ProcessBuilder(cmd.split(" ")).start()
-//                val outLines = process.inputStream.bufferedReader().readLines()
-//                process.waitFor()
-//
-//                val format = Regex("^.+\\s+([0-9]+)\\s+([0-9]+)\\s+([0-9]+)\\s+.+$")
-//                outLines.forEach { line ->
-//                    // Fuzzware use redis, so we need to kill the redis server process, or they may occupy many ports
-//                    if (!line.contains("fuzzware") && !line.contains("redis-server"))
-//                        return@forEach
-//                    format.matchEntire(line) ?. let {
-//                        val ppid = it.groupValues[2].toLong()
-//                        if (ppid == 1L) {
-//                            hasOrphan = true
-//                            logger.info("kill: ${it.groupValues[1]}")
-//                            ProcessBuilder("kill", "-9", it.groupValues[1]).start().waitFor()
-//                        }
-//                    }
-//                }
-//            }
-//        }
     }
 }

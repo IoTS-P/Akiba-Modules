@@ -35,6 +35,7 @@ def dump_reverse_list(filename):
 
 def generate_dataset(config_file, input_file):
     command_both_events = f'fuzzware_harness -c {config_file} {input_file} --trace-out=trace-out.txt --state-out=state-out.txt > crash-log.txt'
+    print(f'Command: {command_both_events}')
     instlist_path = os.path.join('instlist')
     traceout_path = os.path.join('trace-out.txt')
 
@@ -51,6 +52,7 @@ if __name__ == '__main__':
     parser.add_argument('input', help='Fuzzware input file')
     args = parser.parse_args()
 
+    print(f"Changing cwd to {args.firmrca_root}")
     os.chdir(args.firmrca_root)
 
     generate_dataset(args.config, args.input)
