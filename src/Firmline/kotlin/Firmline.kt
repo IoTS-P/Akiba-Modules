@@ -1,11 +1,17 @@
 package org.iotsplab.akiba.process
 
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import org.apache.logging.log4j.Level
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.utils.IgnoreRuntimeTimeout
 import org.iotsplab.akiba.utils.WithConfigClass
+import org.iotsplab.akiba.utils.WithTableColumn
 import java.lang.IllegalArgumentException
 import java.nio.file.Path
 import kotlin.io.path.absolutePathString
@@ -15,6 +21,7 @@ import kotlin.io.path.name
 import kotlin.io.path.notExists
 
 @WithConfigClass(FirmlineConfig::class)
+@WithTableColumn("max_memory_kb", "BIGINT")
 @IgnoreRuntimeTimeout
 class Firmline (
     configPath: String? = null,
@@ -118,16 +125,44 @@ class Firmline (
                     "LD_LIBRARY_PATH=/usr/local/lib " +
                     "${conf.pythonRoot} pipeline.py ${bin.absolutePathString()}"
         ).redirectErrorStream(true).start()
+        val pid = process.pid()
+        var maxMemoryKb = 0L
 
-        val outReader = launch {
-            process.inputStream.bufferedReader().use { reader ->
-                var line: String?
-                while (reader.readLine().also { line = it } != null)
-                    logger.trace(line)
+        val outReader = CoroutineScope(coroutineContext).launch {
+            withContext(Dispatchers.IO) {
+                process.inputStream.bufferedReader().use { reader ->
+                    var line: String?
+                    while (reader.readLine().also { line = it } != null)
+                        logger.trace(line)
+                }
             }
         }
+
+        val memoryMonitor = CoroutineScope(coroutineContext).launch {
+            logger.debug("Memory monitor started")
+            while (isActive && process.isAlive) {
+                val currentMemoryKb = getProcessTreeMemoryKb(pid)
+                if (currentMemoryKb != null && currentMemoryKb > maxMemoryKb) {
+                    maxMemoryKb = currentMemoryKb
+                }
+                if (maxMemoryKb > conf.memoryCostMeltdownThreshold) {
+                    logger.error("Memory cost meltdown detected, terminating process tree")
+                    killProcessTree(pid)
+                    break
+                }
+                delay(5_000)
+            }
+            val finalMemoryKb = getProcessTreeMemoryKb(pid)
+            if (finalMemoryKb != null && finalMemoryKb > maxMemoryKb) {
+                maxMemoryKb = finalMemoryKb
+            }
+        }
+
         outReader.join()
+        memoryMonitor.join()
         process.waitFor()
+
+        updateData(mapOf("max_memory_kb" to maxMemoryKb))
 
         when (process.exitValue()) {
             in listOf(143, 1) -> {
@@ -149,6 +184,69 @@ class Firmline (
         }
 
         bin.deleteIfExists()
+    }
+
+    private fun getProcessTreeMemoryKb(pid: Long): Long? {
+        val pids = getChildPids(pid).toMutableList().also { it.add(pid) }
+        var totalMemoryKb = 0L
+        for (p in pids) {
+            val statusFile = Path.of("/proc/$p/status").toFile()
+            if (!statusFile.exists()) continue
+            val vmRssLine = statusFile.readLines().firstOrNull { it.startsWith("VmRSS:") } ?: continue
+            val memCost = vmRssLine.substringAfter("VmRSS:").substringBefore("kB").trim().toLongOrNull() ?: continue
+            // Without this println, the memory cost could not be added normally and I don't know what the hell is going on
+            println("Process $p memory cost: $memCost KB")
+            totalMemoryKb += memCost
+        }
+        if (totalMemoryKb > 0) {
+            logger.debug("Process tree $pid memory cost: $totalMemoryKb KB")
+        }
+        return totalMemoryKb
+    }
+
+    private fun getChildPids(pid: Long): List<Long> {
+        val childPids = mutableListOf<Long>()
+        val tasksDir = Path.of("/proc/$pid/task")
+        if (!tasksDir.toFile().exists()) return childPids
+        try {
+            tasksDir.toFile().listFiles()?.forEach { taskDir ->
+                val childrenFile = taskDir.resolve("children")
+                if (childrenFile.exists()) {
+                    childrenFile.readText().split("\\s+".toRegex()).filter { it.isNotEmpty() }.forEach { childPidStr ->
+                        val childPid = childPidStr.toLongOrNull() ?: return@forEach
+                        childPids.add(childPid)
+                        childPids.addAll(getChildPids(childPid))
+                    }
+                }
+            }
+        } catch (_: Exception) {
+            // Ignore permission errors or other exceptions
+        }
+        return childPids
+    }
+
+    private fun killProcessTree(pid: Long) {
+        val stoppedPids = mutableSetOf<Long>()
+        val toProcess = ArrayDeque<Long>()
+        toProcess.add(pid)
+        while (!toProcess.isEmpty()) {
+            val currentPid = toProcess.removeFirst()
+            if (stoppedPids.contains(currentPid)) continue
+            try {
+                Runtime.getRuntime().exec(arrayOf("kill", "-STOP", currentPid.toString())).waitFor()
+                stoppedPids.add(currentPid)
+            } catch (_: Exception) { }
+            getChildPids(currentPid).forEach { childPid ->
+                if (!stoppedPids.contains(childPid)) {
+                    toProcess.add(childPid)
+                }
+            }
+        }
+        stoppedPids.forEach { p ->
+            try {
+                Runtime.getRuntime().exec(arrayOf("kill", "-9", p.toString())).waitFor()
+            } catch (_: Exception) { }
+        }
     }
 
     companion object {

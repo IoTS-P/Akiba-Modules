@@ -1,28 +1,27 @@
 package org.iotsplab.akiba.process
 
+import com.fasterxml.jackson.module.kotlin.jacksonObjectMapper
+import com.fasterxml.jackson.module.kotlin.readValue
 import ghidra.program.model.listing.Program
+import io.ktor.http.HttpStatusCode
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import org.apache.logging.log4j.Level
-import org.iotsplab.akiba.client.database.DatabaseClient
+import org.iotsplab.akiba.data.database.DatabaseClient
+import org.iotsplab.akiba.data.database.DatabaseClient.DatabaseDaemonException
+import org.iotsplab.akiba.data.database.DatabaseClient.post
 import org.iotsplab.akiba.managers.ConfigManager.mainConf
-import org.iotsplab.akiba.managers.DefaultDatabaseOperator
 import org.iotsplab.akiba.module.AkibaModule
-import org.iotsplab.akiba.process.FirmRCA.Companion.CLASSIFY_VIEW_SQL
-import org.iotsplab.akiba.process.FirmRCA.Companion.CREATE_VIEW_SQL
 import org.iotsplab.akiba.utils.WithTableColumn
-import org.iotsplab.akiba.utils.WithView
 import org.iotsplab.akiba.utils.IgnoreRuntimeTimeout
 import org.iotsplab.akiba.utils.ProcedureArgumentsDeserializer.allModules
 import org.iotsplab.akiba.utils.WithConfigClass
 import java.nio.file.Files
 import java.nio.file.Path
-import java.sql.ResultSet
 import java.util.jar.JarFile
 import kotlin.io.path.ExperimentalPathApi
-import kotlin.io.path.Path
 import kotlin.io.path.absolutePathString
 import kotlin.io.path.copyTo
 import kotlin.io.path.deleteIfExists
@@ -32,8 +31,6 @@ import kotlin.io.path.notExists
 
 @WithTableColumn("input_id_map", "JSONB")
 @WithTableColumn("firmrca_results", "JSONB")
-@WithView("firmrca_classified_results", CLASSIFY_VIEW_SQL)
-@WithView("firmrca_parsed_results", CREATE_VIEW_SQL)
 @WithConfigClass(FirmRCAConfig::class)
 @IgnoreRuntimeTimeout
 class FirmRCA (
@@ -65,13 +62,9 @@ class FirmRCA (
     // In the root of FirmRCA project, we will create a map file to map each input file with an integer,
     // and create many subdirectories named by these integers to save output files of each input file.
     private lateinit var mapFile: Path
-    private val inputFileMap: MutableMap<Int, String>
-        = (DatabaseClient.getModuleData(id.toLong(), dbTableName, listOf("input_id_map")) as String?)
-            ?.let { Json.decodeFromString(it) }
-            ?: mutableMapOf()
+    private lateinit var inputFileMap: MutableMap<Int, String>
 
-    private val inputFileReversedMap: MutableMap<String, Int>
-        = inputFileMap.entries.associate { (k, v) -> v to k }.toMutableMap()
+    private lateinit var inputFileReversedMap: MutableMap<String, Int>
 
     @Serializable
     data class FirmRCAResults (
@@ -84,6 +77,14 @@ class FirmRCA (
     @OptIn(ExperimentalPathApi::class)
     @Throws(IllegalStateException::class)
     override suspend fun startProcess() {
+        inputFileMap = try {
+            (getTaskData("$dbTableName.input_id_map") as String?)
+                ?.let { Json.decodeFromString(it) }
+                ?: mutableMapOf()
+        } catch (_: NoSuchElementException) {
+            mutableMapOf()
+        }
+        inputFileReversedMap = inputFileMap.entries.associate { (k, v) -> v to k }.toMutableMap()
 
         fuzzwareConf = getTaskData("fuzzware_basic_conf") as? FuzzwareGatewayConfig
             ?: throw IllegalArgumentException("Fuzzware basic config not found, need to run 'FuzzwareGateway' first")
@@ -136,7 +137,8 @@ class FirmRCA (
 
         // Generate datasets for each input
         val allInputResults = inputFiles.mapIndexed { idx, i ->
-            val relativePath = Path.of(mainConf.binariesRoot).relativize(i).toString()
+            // val relativePath = Path.of(mainConf.binariesRoot).relativize(i).toString()
+            val relativePath = i.toString()
             val fuzzGroup: Int = relativePath.split("/")
                 .last { it.startsWith("main") }.substringAfter("main").toInt()
             val fuzzConfig: Path = fuzzwareProjectRoot.resolve(
@@ -146,7 +148,7 @@ class FirmRCA (
                 inputFileReversedMap[relativePath] = inputFileMap.size
                 inputFileReversedMap.size
             } else inputFileReversedMap[relativePath]!!
-            generateDataset(fuzzConfig, i, id)
+            generateDataset(fuzzConfig, fuzzwareProjectRoot.resolve(i), id)
             id to runFirmRCA(id)
         }.toMap()
 
@@ -157,14 +159,10 @@ class FirmRCA (
         ))
     }
 
-    private fun filterInputs(): List<Path> {
-        val data = DatabaseClient.getModuleData(
-            id.toLong(), "firmrca_classified_results", listOf("path"))
-
-        @Suppress("UNCHECKED_CAST")
-        val list = (data["path"] as List<String>).map { Path.of(it) } // TODO: Need tests
-
-        return list
+    private suspend fun filterInputs(): List<Path> {
+        println(getTaskData(conf.classifySource))
+        return jacksonObjectMapper().readValue<List<String>>(getTaskData(conf.classifySource) as String)
+            .map { Path.of(it) }
     }
 
     private fun checkFirmRCAEnv(): Boolean {
@@ -274,6 +272,8 @@ class FirmRCA (
 
         val builder = ProcessBuilder(*fuzzwareConf.cmdPrefix.toTypedArray(), cmd)
         logger.info("Ready to generate dataset for firmware ${super.id} input $id ...")
+        logger.info("Fuzzware config file: $fuzzConfig")
+        logger.info("Fuzzware input file: $fuzzInput")
         val process: Process = builder.start()
         process.waitFor()
         logger.debug(process.inputStream.bufferedReader().readText())
@@ -281,6 +281,8 @@ class FirmRCA (
             logger.error("Failed to generate dataset for firmware ${super.id} input $id/${inputFiles.size}")
         else
             logger.info("Successfully generated dataset for firmware ${super.id} input $id/${inputFiles.size}")
+
+        logger.debug("Python script output: ${process.inputStream.bufferedReader().readText()}")
     }
 
     private suspend fun runFirmRCA(id: Int): FirmRCAResults = coroutineScope {
@@ -364,26 +366,30 @@ class FirmRCA (
         private var firmRCAEnvReady: Boolean = false
         private val checkLock = Any()
 
+        // You need to create a view to classify replays manually because we don't know the table name saving replay data
+        // substitute `$$` with your table name
         const val CLASSIFY_VIEW_SQL = """
-            SELECT jsonb_agg(path) FROM (
+            CRAETE VIEW firmrca_classified_replays AS SELECT id, json_agg(path) AS paths FROM (
                 SELECT *, row_number() OVER (
                     PARTITION BY id, pc, lr ORDER BY random()
                 ) AS rn
-                FROM fuzzware_replay_crashes WHERE basic_block_cov >= 0.2
-            ) WHERE rn = 1
+                FROM $$ WHERE basic_block_cov >= 0.2
+            ) WHERE rn = 1 GROUP BY id
         """
 
+        // Substitute `$$` with your FirmRCA table name
         const val CREATE_VIEW_SQL = """
             SELECT
-                fr.id                              AS id,
-                im.key                             AS input_id,
-                im.value                           AS input_path,
-                fr.firmrca_results -> im.key       AS input_results,
-                '0x' || to_hex((fr.firmrca_results -> im.key -> 'results' -> 0)::bigint) AS best_match,
-                (fr.firmrca_results -> im.key -> 'scores' -> 0)::numeric AS best_score,
-                fr.firmrca_results -> im.key ->> 'errMsg' AS err_msg
-            FROM firmrca_results fr,
-                 json_each(fr.firmrca_results -> 'input_id_map') AS im(key, value);
+	            fr.id                              AS id,
+	            im.key                             AS input_id,
+	            im.value                           AS input_path,
+	            fr.firmrca_results -> im.key       AS input_results,
+	            '0x' || to_hex((fr.firmrca_results -> im.key -> 'results' -> 0)::bigint) AS best_match,
+	            (fr.firmrca_results -> im.key -> 'scores' -> 0)::numeric AS best_score,
+	            fr.firmrca_results -> im.key ->> 'errMsg' AS err_msg
+            FROM $$ fr,
+	             jsonb_each(fr.firmrca_results) AS im(key, value)
+            ORDER BY id, input_id;
         """
     }
 }

@@ -58,8 +58,8 @@ class FirmlineBaseChecker (
 
         val dbUrl = "jdbc:sqlite:${firmlineDb.absolutePathString()}"
         logger.info("Working out sha256...")
-        val sha256original = sha256sum(File(getMetadata().originalPath))
-        val sha256trimmed = getMetadata().processedPath ?.let { sha256sum(File(it)) } ?: sha256original
+        val sha256original = sha256sum(originalFile)
+        val sha256trimmed = processedFile ?.let { sha256sum(it) } ?: sha256original
         updateData(mapOf(
             "trimmed_sha256" to sha256trimmed,
             "original_sha256" to sha256original
@@ -119,6 +119,7 @@ class FirmlineBaseChecker (
 
     private fun findBaseAddress(url: String, sha256: String): Int {
         var result = BASE_ADDRESS_NOT_NULL
+        Class.forName("org.sqlite.JDBC")
         DriverManager.getConnection(url).use { conn ->
             conn.prepareStatement(getFirmlineBaseAddressSQL).let { stmt ->
                 stmt.setString(1, sha256)
@@ -142,7 +143,7 @@ class FirmlineBaseChecker (
     private suspend fun testBaseAddress(base: Long): Boolean {
         val api = FlatProgramAPI(prog)
         val ivt: ArmcmIVT
-        val entry: Address = if (Regex("ARM:(LE|BE):32:Cortex").matches(prog.languageID.toString())) {
+        val entry: Address = if (Regex("ARM:(LE|BE):32:.+").matches(prog.languageID.toString())) {
             ivt = ArmcmIVT.fromAddress(prog, prog.memory.minAddress) ?: run {
                 logger.error("Header is not a valid IVT")
                 return false

@@ -9,7 +9,7 @@ import org.apache.logging.log4j.Level
 import org.iotsplab.akiba.managers.ConfigManager.mainConf
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.getFuzzwareTimeoutDuration
-import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.swipeFuzzwareProcesses
+import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.killProcessTree
 import org.iotsplab.akiba.process.fuzzware.CoverageInfo
 import org.iotsplab.akiba.utils.WithTableColumn
 import org.iotsplab.akiba.utils.IgnoreRuntimeTimeout
@@ -131,7 +131,7 @@ class FirmXRayOnFuzzware (
 
                     if (line.contains("Shutdown requested!")) {
                         logger.info("Timeout get, destroyed forcibly")
-                        swipeFuzzwareProcesses(logger, process)
+                        killProcessTree(process.pid())
                         break
                     }
 

@@ -1,8 +1,8 @@
 import java.util.jar.JarInputStream
 
 plugins {
-    kotlin("jvm") version "2.1.20"
-    kotlin("plugin.serialization") version "2.1.20"
+    kotlin("jvm") version "2.3.20"
+    kotlin("plugin.serialization") version "2.3.20"
 }
 
 group = "org.iotsplab.akiba.process"   // Change this to your own group
@@ -346,12 +346,12 @@ val underDevelopmentModules = listOf(
 // Add your dependencies here
 dependencies {
     // Module-specified dependencies
-    (lc["ConvertFirmToELF"]!!)("net.fornwall:jelf:0.9.0")
-    (lc["FirmlineBaseChecker"]!!)("org.xerial:sqlite-jdbc:3.51.1.0")
-    (lc["FuzzwareReplay"]!!)("org.jetbrains.kotlinx:kotlinx-serialization-json:1.8.1")
-    (lc["HoedurStatistics"]!!)("com.github.luben:zstd-jni:1.4.9-2")
-    (lc["HoedurStatistics"]!!)("org.yaml:snakeyaml:2.4")
-    (lc["HoedurStatistics"]!!)("com.fasterxml.jackson.module:jackson-module-kotlin:2.20.0")
+    (lc["ConvertFirmToELF"]!!)("net.fornwall:jelf:0.10.0")
+    (lc["FirmlineBaseChecker"]!!)("org.xerial:sqlite-jdbc:3.51.3.0")
+    (lc["FuzzwareReplay"]!!)("org.jetbrains.kotlinx:kotlinx-serialization-json:1.10.0")
+    (lc["HoedurStatistics"]!!)("com.github.luben:zstd-jni:1.5.5-7")
+    (lc["HoedurStatistics"]!!)("org.yaml:snakeyaml:2.6")
+    (lc["HoedurStatistics"]!!)("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
 
     // You can also add other modules as dependencies
     (lc["AddressSpaceAnalyzer"]!!)(moduleDependency(listOf("ARMBaseFinder", "IoTGeneralStructures")))
@@ -382,13 +382,13 @@ dependencies {
     (lc["StartupDynamicChecker"]!!)(moduleDependency(listOf("IoTGeneralStructures")))
 
     // public dependencies
-    PublicConfiguration("org.apache.logging.log4j:log4j-api:2.24.3")
-    PublicConfiguration("org.apache.logging.log4j:log4j-core:2.24.3")
+    PublicConfiguration("org.apache.logging.log4j:log4j-api:2.25.4")
+    PublicConfiguration("org.apache.logging.log4j:log4j-core:2.25.4")
     PublicConfiguration("org.jetbrains.kotlinx:kotlinx-coroutines-core-jvm:1.10.2")
     PublicConfiguration(project(":akiba_framework"))
     PublicConfiguration(fileTree(mapOf("dir" to "modules", "include" to listOf("*.jar"))))
-    PublicConfiguration("io.ktor:ktor-server:3.1.3")
-    PublicConfiguration("io.ktor:ktor-server-netty:3.1.3")
+    PublicConfiguration("io.ktor:ktor-server:3.4.2")
+    PublicConfiguration("io.ktor:ktor-server-netty:3.4.2")
     testImplementation(kotlin("test"))
 }
 

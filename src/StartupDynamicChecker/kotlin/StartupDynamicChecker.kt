@@ -70,9 +70,7 @@ class StartupDynamicChecker(
 
     companion object {
         const val TOTAL_EXECUTION_THRESHOLD: Long = 10000
-        const val DISTINCT_INSTRUCTION_THRESHOLD: Int = 20
-        const val DISTINCT_FUNCTION_THRESHOLD: Int = 2
-        const val LOOSEN_THRESHOLD: Int = 10
+        const val DISTINCT_INSTRUCTION_THRESHOLD: Int = 10
 
         class CheckerEmulator(
             program: Program,
@@ -109,18 +107,14 @@ class StartupDynamicChecker(
                 if (superBehavior != NEXT_BEHAVIOR_NORMAL)
                     return superBehavior
                 // Need to get the count of functions executed and the count of instructions executed
-                if (distinctInstExecuted.size >= DISTINCT_INSTRUCTION_THRESHOLD &&
-                    distinctFunctionExecuted.size >= DISTINCT_FUNCTION_THRESHOLD) {
+                if (distinctInstExecuted.size >= DISTINCT_INSTRUCTION_THRESHOLD) {
                     return NEXT_BEHAVIOR_STOP
                 }
                 return NEXT_BEHAVIOR_NORMAL
             }
 
             override fun finalization() {
-                startupInfoValid = (distinctInstExecuted.size >= DISTINCT_INSTRUCTION_THRESHOLD
-                        && distinctFunctionExecuted.size >= DISTINCT_FUNCTION_THRESHOLD)
-                if (!startupInfoValid && instExecuted >= TOTAL_EXECUTION_THRESHOLD)
-                    startupInfoValid = (distinctInstExecuted.size >= LOOSEN_THRESHOLD)
+                startupInfoValid = (distinctInstExecuted.size >= DISTINCT_INSTRUCTION_THRESHOLD)
 
                 logger?.info("Dynamic check ${if (startupInfoValid) "passed" else "failed"}")
                 logger?.info("Executed ${distinctInstExecuted.size} distinct instructions")
