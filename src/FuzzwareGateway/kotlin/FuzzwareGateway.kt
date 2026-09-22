@@ -171,7 +171,7 @@ class FuzzwareGateway (
             configTemplate,
             baseAddress,
             if(forHoedur) originalPath.fileName else originalPath.absolutePathString(),
-            ivtStart - baseAddress,
+            0L,
             originalPath.fileSize(),
             allFunctions.map {"  0x${it.key.toString(16)}: ${it.value}" }.joinToString("\n")
         ))

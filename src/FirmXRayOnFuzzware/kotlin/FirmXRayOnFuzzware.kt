@@ -61,6 +61,11 @@ class FirmXRayOnFuzzware (
         rootDir = Path.of(mainConf.binariesRoot, fuzzwareConf.projectRoot, id.toString())
 
         try {
+
+            // logger.info("Waiting for Ghidra auto-analysis to complete before Fuzzware config generation...")
+            // org.iotsplab.akiba.managers.ProgramManager.autoAnalyzeInTimeout(prog, mainConf.autoAnalysisTimeout)
+            // logger.info("Ghidra analysis finished. Function count: ${prog.functionManager.functionCount}")
+
             if (!(callTaskAPI(FuzzwareGateway::activateEnv) as Boolean)) {
                 logger.error("Failed to activate Fuzzware environment, exited")
                 return

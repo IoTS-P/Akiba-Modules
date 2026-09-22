@@ -160,6 +160,48 @@ val localModules = listOf(         // Register module metadata here: authors, ve
         briefDescription = "Run fuzzing tools Fuzzware using FirmXRay's data"
     ),
     ModuleMetadata(
+        moduleName = "FuzzwareAdmissionTest",
+        mainClassPath = "org.iotsplab.akiba.process.FuzzwareAdmissionTest",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
+        moduleName = "HoedurAdmissionTest",
+        mainClassPath = "org.iotsplab.akiba.process.HoedurAdmissionTest",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
+        moduleName = "MultiFuzzAdmissionTest",
+        mainClassPath = "org.iotsplab.akiba.process.MultiFuzzAdmissionTest",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
+        moduleName = "AidFuzzerAdmissionTest",
+        mainClassPath = "org.iotsplab.akiba.process.AidFuzzerAdmissionTest",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
+        moduleName = "P2IMGateway",
+        mainClassPath = "org.iotsplab.akiba.process.P2IMGateway",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
+        moduleName = "P2IMRunner",
+        mainClassPath = "org.iotsplab.akiba.process.P2IMRunner",
+        authors = listOf(),
+        version = "1.0",
+        briefDescription = ""
+    ),
+    ModuleMetadata(
         moduleName = "FirmXRayOnFuzzwareReplay",
         mainClassPath = "org.iotsplab.akiba.process.FirmXRayOnFuzzwareReplay",
         authors = listOf("Hornos3"),
@@ -324,6 +366,11 @@ dependencies {
     (lc["FirmRCA"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwareReplay")))
     (lc["FirmXRay"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
     (lc["FirmXRayOnFuzzware"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwarePipeline")))
+    (lc["FuzzwareAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["HoedurAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["MultiFuzzAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["AidFuzzerAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
+    (lc["P2IMRunner"]!!)(moduleDependency(listOf("P2IMGateway")))
     (lc["FirmXRayOnFuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
     (lc["FunctionFinder"]!!)(moduleDependency(listOf("ARMBaseFinder")))
     (lc["FuzzwareEmu"]!!)(moduleDependency(listOf("FuzzwareGateway")))
