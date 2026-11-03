@@ -30,13 +30,11 @@ import org.iotsplab.akiba.utils.memory.EnhancedMemorySearcher
 import org.iotsplab.akiba.utils.string.RegexSearcher.Companion.REGEX_MAX_SEARCH_COUNT
 
 /**
- * FunctionFinder: Restore thumb functions that could be missed by the auto-defined functions.
+ * FunctionFinder: restore thumb functions the auto-analysis missed.
  *
- * Detailed process:
- *  - Search in brute force direct call instructions to define some functions in advance, to avoid defining functions
- *    with wrong entry points to some extent
- *  - Check the memory space between functions and try to disassemble and define new functions in brute force
- *  - Check the beginning and the end of the file to try to restore more functions
+ * Brute-forces direct call instructions first so functions are defined with the
+ * correct entry points, then disassembles the gaps between functions and the
+ * head/tail of the file to recover more.
  *
  * @author: Hornos3, Hornos3@github.com
  */

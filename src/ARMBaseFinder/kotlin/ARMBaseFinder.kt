@@ -34,14 +34,11 @@ import kotlin.io.path.fileSize
 import kotlin.math.ceil
 
 /**
- * ARMBaseFinder: Finder for base addresses and entry points of ARM Cortex-M firmware bin files
- * Former processes requirements: HTTPServer, ProgramServer, EntryFinder
+ * ARMBaseFinder: find base addresses and entry points of ARM Cortex-M firmware bin files.
  *
- * Detailed process:
- *  - Find and get all possible Interrupt Vector Table (IVT) in bin file
- *  - Match those IVT with all defined function entry points
- *  - Filter the match results with multiple filters
- *  - Choose the best one and update database
+ * Process: enumerate every possible Interrupt Vector Table (IVT), match them
+ * against all defined function entry points, filter the matches, then pick the
+ * best one and update the database.
  *
  * @author: Hornos3, Hornos3@github.com
  */

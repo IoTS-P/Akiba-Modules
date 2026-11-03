@@ -23,18 +23,11 @@ import kotlin.io.path.createDirectories
 import kotlin.io.path.fileSize
 
 /**
- * ConvertFirmToELF: Convert firmware file to ELF file, to make it easier to run in various fuzzing tools.
+ * ConvertFirmToELF: convert a firmware file to ELF so fuzzing tools can load it.
  *
- * We need much information to restore a bin back to an ELF:
- * - Basic info:
- *   - Word length (32 / 64)
- *   - Endianness (little / big)
- *   - Architecture (x86 / ARM / ...)
- * - Memory sections, every section need:
- *   - Base address
- *   - Offset in file (May not exist for some section, like .bss)
- *   - Size
- * - Entry point
+ * Rebuilding a flat binary as ELF needs word length (32 / 64), endianness,
+ * architecture, the memory sections (base address, file offset — absent for
+ * sections such as `.bss` — and size) and the entry point.
  */
 @DataConsumer<BasicLoadMetadata>("load_metadata")
 @WithTableColumn("elf_path", "TEXT")

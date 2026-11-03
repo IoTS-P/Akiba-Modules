@@ -299,15 +299,12 @@ class FirmRCA (
             else
                 instlistLines
 
-        // FirmRCA executable arguments:
-        // 1. state-out.txt (generated from fuzzware argument `--state-out=...`)
-        // 2. firmware path
-        // 3. instlist.reverse (generated from FirmRCA's Fuzzware and script `generateDataset.py`)
-        // 4. memac.bin (generated from fuzzware argument `--trace-out=...`)
-        // 5. base address of the firmware
-        // 6. max number of instructions got reversed (Got by counting the lines of `instlist.reverse`)
-        // 7. max number of instructions got to find root causes (Got by counting the lines of `instlist.reverse`)
-        // The output could be very long, so we redirect it to a file.
+        // FirmRCA executable args, in order: state-out.txt (`--state-out=...`),
+        // firmware path, instlist.reverse (Fuzzware + `generateDataset.py`),
+        // memac.bin (`--trace-out=...`), firmware base address, then the max
+        // instruction counts for reversing and for root-cause search (both counted
+        // from the lines of `instlist.reverse`). Output can be very long, so it is
+        // redirected to a file.
         val cmd = "${fuzzwareConf.cmdPredo} && source ${conf.firmRCAPythonVenvRoot!!}/bin/activate && " +
                 "export LD_LIBRARY_PATH=${conf.firmRCARoot!!}/src/lib && " +
                 "timeout ${conf.timeoutForEach} " +
