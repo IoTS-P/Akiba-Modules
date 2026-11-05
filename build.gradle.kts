@@ -350,6 +350,42 @@ val underDevelopmentModules = listOf(
     "EnhancedFunctionFinder"
 )
 
+/**
+ * Module → the modules it bundles, which is also the build order.
+ *
+ * Declared as a map instead of scattered `moduleDependency(...)` calls so the
+ * graph is readable and usable without resolving any jar: a module that fails to
+ * compile must not stop unrelated modules from building.
+ */
+val moduleDeps: Map<String, List<String>> = mapOf(
+    "AddressSpaceAnalyzer" to listOf("ARMBaseFinder", "IoTGeneralStructures"),
+    "ArchChecker" to listOf("ProgramInitialization"),
+    "ARMBaseFinder" to listOf("IoTGeneralStructures", "ProgramServer", "StartupDynamicChecker"),
+    "ConvertFirmToELF" to listOf("IoTGeneralStructures"),
+    "CortexEmulator" to listOf("ARMBaseFinder"),
+    "ExternalDynamicChecker" to listOf("ARMBaseFinder", "StartupDynamicChecker"),
+    "FirmlineBaseChecker" to listOf("ARMBaseFinder", "StartupDynamicChecker"),
+    "FirmlineOnFuzzware" to listOf("FuzzwareGateway", "FuzzwarePipeline"),
+    "FirmlineOnFuzzwareReplay" to listOf("FuzzwareGateway"),
+    "FirmRCA" to listOf("FuzzwareGateway", "FuzzwareReplay"),
+    "FirmXRay" to listOf("ARMBaseFinder", "StartupDynamicChecker"),
+    "FirmXRayOnFuzzware" to listOf("FuzzwareGateway", "FuzzwarePipeline"),
+    "FirmXRayOnFuzzwareReplay" to listOf("FuzzwareGateway"),
+    "FuzzwareAdmissionTest" to listOf("FuzzwareGateway"),
+    "HoedurAdmissionTest" to listOf("FuzzwareGateway"),
+    "MultiFuzzAdmissionTest" to listOf("FuzzwareGateway"),
+    "AidFuzzerAdmissionTest" to listOf("FuzzwareGateway"),
+    "P2IMRunner" to listOf("P2IMGateway"),
+    "FunctionFinder" to listOf("ARMBaseFinder"),
+    "FuzzwareEmu" to listOf("FuzzwareGateway"),
+    "FuzzwareGateway" to listOf("ARMBaseFinder"),
+    "FuzzwarePipeline" to listOf("FuzzwareGateway"),
+    "FuzzwareReplay" to listOf("FuzzwareGateway"),
+    "HoedurFuzz" to listOf("FuzzwareGateway"),
+    "MultiFuzz" to listOf("FuzzwareGateway", "HoedurFuzz"),
+    "StartupDynamicChecker" to listOf("IoTGeneralStructures"),
+)
+
 // Add your dependencies here
 dependencies {
     // Module-specified dependencies
@@ -361,32 +397,9 @@ dependencies {
     (lc["HoedurStatistics"]!!)("com.fasterxml.jackson.module:jackson-module-kotlin:2.21.2")
 
     // You can also add other modules as dependencies
-    (lc["AddressSpaceAnalyzer"]!!)(moduleDependency(listOf("ARMBaseFinder", "IoTGeneralStructures")))
-    (lc["ArchChecker"]!!)(moduleDependency(listOf("ProgramInitialization")))
-    (lc["ARMBaseFinder"]!!)(moduleDependency(listOf("IoTGeneralStructures", "ProgramServer", "StartupDynamicChecker")))
-    (lc["ConvertFirmToELF"]!!)(moduleDependency(listOf("IoTGeneralStructures")))
-    (lc["CortexEmulator"]!!)(moduleDependency(listOf("ARMBaseFinder")))
-    (lc["ExternalDynamicChecker"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
-    (lc["FirmlineBaseChecker"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
-    (lc["FirmlineOnFuzzware"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwarePipeline")))
-    (lc["FirmlineOnFuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["FirmRCA"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwareReplay")))
-    (lc["FirmXRay"]!!)(moduleDependency(listOf("ARMBaseFinder", "StartupDynamicChecker")))
-    (lc["FirmXRayOnFuzzware"]!!)(moduleDependency(listOf("FuzzwareGateway", "FuzzwarePipeline")))
-    (lc["FuzzwareAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["HoedurAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["MultiFuzzAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["AidFuzzerAdmissionTest"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["P2IMRunner"]!!)(moduleDependency(listOf("P2IMGateway")))
-    (lc["FirmXRayOnFuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["FunctionFinder"]!!)(moduleDependency(listOf("ARMBaseFinder")))
-    (lc["FuzzwareEmu"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["FuzzwareGateway"]!!)(moduleDependency(listOf("ARMBaseFinder")))
-    (lc["FuzzwarePipeline"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["FuzzwareReplay"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["HoedurFuzz"]!!)(moduleDependency(listOf("FuzzwareGateway")))
-    (lc["MultiFuzz"]!!)(moduleDependency(listOf("FuzzwareGateway", "HoedurFuzz")))
-    (lc["StartupDynamicChecker"]!!)(moduleDependency(listOf("IoTGeneralStructures")))
+    moduleDeps.forEach { (owner, deps) ->
+        (lc[owner]!!)(moduleDependency(deps))
+    }
 
     // public dependencies
     PublicConfiguration("org.apache.logging.log4j:log4j-api:2.25.4")
@@ -444,12 +457,18 @@ localModules.forEach { module ->
 
             duplicatesStrategy = DuplicatesStrategy.EXCLUDE
 
+            // Build the modules this one bundles first. Ordering comes from the
+            // declared graph, never from resolving their jars: a sibling that
+            // fails to build must not break this task's configuration.
+            dependsOn(moduleDeps[module.moduleName].orEmpty().map { "moduleJar-$it" })
+
             from(sourceSets[module.moduleName].output) {
                 duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             }
 
-            // Pack all jars except Akiba and Ghidra
-            from(
+            // Pack all jars except Akiba and Ghidra. Resolved lazily so the
+            // sibling jars exist by the time this runs.
+            from({
                 module.configuration.resolve()
                     .filter {
                         it.name.endsWith("jar") &&
@@ -458,25 +477,28 @@ localModules.forEach { module ->
                                 !it.name.startsWith("amod")
                     }
                     .map { zipTree(it) }
-            ) {
+            }) {
                 duplicatesStrategy = DuplicatesStrategy.EXCLUDE
             }
 
             exclude("META-INF/*.RSA", "META-INF/*.SF", "META-INF/*.DSA", "**/.*/**")
 
-            // Write dependency class names into 'META-INF/module-deps'
-            val dependencyClassNames = module.configuration.resolve()
-                .filter { it.name.startsWith("amod") }
-                .mapNotNull {
-                    file(it).inputStream().use { stream ->
-                        JarInputStream(stream).use { jarStream ->
-                            jarStream.manifest?.mainAttributes?.getValue("Main-Class")
+            // Write dependency class names into 'META-INF/module-deps'. Written at
+            // execution time: reading the manifests needs the sibling jars.
+            val depFile = temporaryDir.resolve("META-INF/module-deps")
+            doFirst {
+                val dependencyClassNames = module.configuration.resolve()
+                    .filter { it.name.startsWith("amod") }
+                    .mapNotNull {
+                        it.inputStream().use { stream ->
+                            JarInputStream(stream).use { jarStream ->
+                                jarStream.manifest?.mainAttributes?.getValue("Main-Class")
+                            }
                         }
                     }
-                }
-            val depFile = temporaryDir.resolve("META-INF/module-deps")
-            depFile.parentFile.mkdirs()
-            depFile.writeText(dependencyClassNames.joinToString("\n"))
+                depFile.parentFile.mkdirs()
+                depFile.writeText(dependencyClassNames.joinToString("\n"))
+            }
             from(depFile) { into("META-INF") }
 
             manifest {
@@ -501,32 +523,20 @@ localModules.forEach { module ->
     }
 }
 
-fun recDepend(allTask: Task, undone: MutableList<Task>, selected: Task) {
-    val moduleName = selected.name.substringAfter("moduleJar-")
-    val dependencies = configurations[moduleName].resolve()
-        .filter { it.name.startsWith("amod") && !it.path.contains("/modules/") }
-    if (dependencies.isEmpty()) {
-        allTask.dependsOn(selected)
-    } else {
-        for (dependency in dependencies) {
-            val dependencyName = dependency.name.substringAfter("amod-").substringBefore("-")
-            val dependencyTask = tasks.getByName("moduleJar-$dependencyName")
-            selected.mustRunAfter(dependencyTask)
-            if (undone.contains(dependencyTask))
-                recDepend(allTask, undone, dependencyTask)
-        }
-        allTask.dependsOn(selected)
-    }
-    undone.remove(selected)
-}
-
+/**
+ * Every module jar, ordered by [moduleDeps] through the `dependsOn` each jar task
+ * already declares.
+ *
+ * A module that cannot compile fails its own task (and the modules that bundle
+ * it); unrelated modules still build, which is why this task only lists them
+ * instead of resolving their jars to discover the order.
+ */
 tasks.register("moduleJar-ALL") {
-    val undoneTasks = tasks.filter { it.name.startsWith("moduleJar-") && it.name != "moduleJar-ALL" }
-        .toMutableList()
-    while (!undoneTasks.isEmpty()) {
-        val selected = undoneTasks.first()
-        recDepend(this, undoneTasks, selected)
-    }
+    group = group
+    dependsOn(
+        localModules.map { "moduleJar-${it.moduleName}" }
+            .filter { it in tasks.names }
+    )
 }
 
 tasks.register<Zip>("bundle-zip") {
@@ -545,9 +555,17 @@ tasks.register<Zip>("bundle-zip") {
 
 tasks.test {
     useJUnitPlatform()
-    // Module sources live in their own source sets; the header parser test needs
-    // the AkibaArch output on the test classpath to reach it.
-    classpath += sourceSets["AkibaArch"].output
+}
+
+// Module sources live in their own source sets, so a test that exercises one of
+// them has to see that source set's output explicitly.
+sourceSets.named("test").configure {
+    compileClasspath += sourceSets["AkibaArch"].output
+    runtimeClasspath += sourceSets["AkibaArch"].output
+    // The module links against the framework (language ids come from it), so the
+    // tests need the same compile/runtime classpath the module has.
+    compileClasspath += configurations["Public"]
+    runtimeClasspath += configurations["Public"]
 }
 kotlin {
     jvmToolchain(21)
