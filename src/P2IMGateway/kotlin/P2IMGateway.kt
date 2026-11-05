@@ -68,7 +68,11 @@ class P2IMGateway(
         var guessedBoard = "NUCLEO-F103RB"
         var guessedMcu = "STM32F103RB"
         
-        val stringTable = ghidra.program.util.DefinedDataIterator.definedStrings(prog)
+        // Defined strings are the defined data whose value is a String; the
+        // dedicated `definedStrings` helper is gone from this Ghidra version.
+        val stringTable = ghidra.program.util.DefinedDataIterator.byDataInstance(prog) {
+            it.value is String
+        }
         for (str in stringTable) {
             val value = str.value.toString().uppercase()
 

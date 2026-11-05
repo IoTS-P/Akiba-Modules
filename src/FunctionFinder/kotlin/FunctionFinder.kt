@@ -5,6 +5,7 @@ import ghidra.features.base.memsearch.bytesource.ProgramByteSource
 import ghidra.features.base.memsearch.format.SearchFormat
 import ghidra.features.base.memsearch.gui.SearchSettings
 import ghidra.features.base.memsearch.matcher.RegExByteMatcher
+import ghidra.features.base.memsearch.matcher.SearchData
 import ghidra.features.base.memsearch.searcher.MemoryMatch
 import ghidra.features.base.memsearch.searcher.MemorySearcher
 import ghidra.program.flatapi.FlatProgramAPI
@@ -194,7 +195,7 @@ class FunctionFinder(
         val searcher = MemorySearcher(byteSource, RegExByteMatcher("(\u00FE\u00E7)|(\u00FF\u00F7\u00FE\u00BF)",
             SearchSettings().withSearchFormat(SearchFormat.REG_EX)),
             prog.memory.allInitializedAddressSet, REGEX_MAX_SEARCH_COUNT)
-        val results = ListAccumulator<MemoryMatch>()
+        val results = ListAccumulator<MemoryMatch<SearchData>>()
         searcher.findAll(results, FlatProgramAPI(prog).monitor)
         val resultList = results.asList()
 

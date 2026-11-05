@@ -447,6 +447,15 @@ localModules.forEach { module ->
         runtimeClasspath += module.configuration
     }
 
+    // Compiling needs the bundled modules' jars on the classpath, so the compile
+    // task must wait for them — not just the jar task that packages them.
+    val bundled = moduleDeps[module.moduleName].orEmpty()
+    if (bundled.isNotEmpty()) {
+        tasks.matching { it.name == "compile${module.moduleName}Kotlin" }.configureEach {
+            dependsOn(bundled.map { "moduleJar-$it" })
+        }
+    }
+
     // Exclude modules that are under development
     if (underDevelopmentModules.firstOrNull { it == module.moduleName } == null
         && deprecatedModules.firstOrNull { it == module.moduleName } == null) {

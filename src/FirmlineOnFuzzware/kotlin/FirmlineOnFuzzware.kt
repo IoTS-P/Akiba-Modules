@@ -11,7 +11,7 @@ import org.iotsplab.akiba.managers.ConfigManager.mainConf
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.process.FuzzwareGateway.Companion.configTemplate
 import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.getFuzzwareTimeoutDuration
-import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.swipeFuzzwareProcesses
+import org.iotsplab.akiba.process.FuzzwarePipeline.Companion.killProcessTree
 import org.iotsplab.akiba.process.fuzzware.CoverageInfo
 import org.iotsplab.akiba.utils.WithTableColumn
 import org.iotsplab.akiba.utils.IgnoreRuntimeTimeout
@@ -178,7 +178,8 @@ class FirmlineOnFuzzware (
 
                     if (line.contains("Shutdown requested!")) {
                         logger.info("Timeout get, destroyed forcibly")
-                        swipeFuzzwareProcesses(logger, process)
+                        logger.warn("Shutdown requested; killing the fuzzware process tree")
+                        killProcessTree(process.pid())
                         break
                     }
 

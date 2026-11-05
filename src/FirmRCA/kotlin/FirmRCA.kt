@@ -11,7 +11,6 @@ import kotlinx.serialization.json.Json
 import org.apache.logging.log4j.Level
 import org.iotsplab.akiba.data.database.DatabaseClient
 import org.iotsplab.akiba.data.database.DatabaseClient.DatabaseDaemonException
-import org.iotsplab.akiba.data.database.DatabaseClient.post
 import org.iotsplab.akiba.managers.ConfigManager.mainConf
 import org.iotsplab.akiba.module.AkibaModule
 import org.iotsplab.akiba.utils.WithTableColumn
