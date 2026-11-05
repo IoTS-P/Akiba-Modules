@@ -62,6 +62,13 @@ val localModules = listOf(         // Register module metadata here: authors, ve
         briefDescription = "Check if the arch of a binary file is right"
     ),
     ModuleMetadata(
+        moduleName = "AkibaArch",
+        mainClassPath = "org.iotsplab.akiba.process.AkibaArch",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Identify arch and format from the file header"
+    ),
+    ModuleMetadata(
         moduleName = "ARMBaseFinder",
         mainClassPath = "org.iotsplab.akiba.process.ARMBaseFinder",
         authors = listOf("Hornos3"),
@@ -538,6 +545,9 @@ tasks.register<Zip>("bundle-zip") {
 
 tasks.test {
     useJUnitPlatform()
+    // Module sources live in their own source sets; the header parser test needs
+    // the AkibaArch output on the test classpath to reach it.
+    classpath += sourceSets["AkibaArch"].output
 }
 kotlin {
     jvmToolchain(21)
