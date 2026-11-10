@@ -577,5 +577,5 @@ sourceSets.named("test").configure {
     runtimeClasspath += configurations["Public"]
 }
 kotlin {
-    jvmToolchain(21)
+    jvmToolchain(25)
 }
