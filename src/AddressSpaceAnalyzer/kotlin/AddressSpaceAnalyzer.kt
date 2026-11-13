@@ -80,17 +80,18 @@ class AddressSpaceAnalyzer(
             monitor = taskGlobalMonitor
         )
 
-        // Flash space
-        getMetadata().loadProperties.let {
-            if (!it.isEmpty())
-                it.forEach { section ->
-                    sections.add(MemorySection(section.newOffset, section.length, api.toAddr(section.oldOffset),
-                        "Program flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
-                }
-            else
-                sections.add(MemorySection(0, originalFile.toPath().fileSize(), baseAddress,
-                    "Program Flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
-        }
+        // Flash space: the blocks the loader actually mapped into memory
+        val flashBlocks = prog?.memory?.blocks
+            ?.filter { it.isInitialized && it.isLoaded && it.size > 0 }
+            .orEmpty()
+        if (flashBlocks.isNotEmpty())
+            flashBlocks.forEach { block ->
+                sections.add(MemorySection(null, block.size, block.start,
+                    "Program flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
+            }
+        else
+            sections.add(MemorySection(0, originalFile.toPath().fileSize(), baseAddress,
+                "Program Flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
         // Stack space
         sections.add(MemorySection(
             null, MINIMUM_STACK_SIZE, startupInfo.initialSP!!.subtract(MINIMUM_STACK_SIZE),
