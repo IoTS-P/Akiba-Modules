@@ -55,6 +55,13 @@ val localModules = listOf(         // Register module metadata here: authors, ve
         briefDescription = "Firmware address space resolver"
     ),
     ModuleMetadata(
+        moduleName = "ZeroTrimmer",
+        mainClassPath = "org.iotsplab.akiba.process.ZeroTrimmer",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Drops long zero runs from a program's memory"
+    ),
+    ModuleMetadata(
         moduleName = "ArchChecker",
         mainClassPath = "org.iotsplab.akiba.process.ArchChecker",
         authors = listOf("Hornos3"),
