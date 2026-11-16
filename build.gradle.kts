@@ -55,6 +55,13 @@ val localModules = listOf(         // Register module metadata here: authors, ve
         briefDescription = "Firmware address space resolver"
     ),
     ModuleMetadata(
+        moduleName = "PlanDemo",
+        mainClassPath = "org.iotsplab.akiba.process.PlanDemo",
+        authors = listOf("Hornos3"),
+        version = "1.0",
+        briefDescription = "Exercises plan plumbing: config in, counts out"
+    ),
+    ModuleMetadata(
         moduleName = "ZeroTrimmer",
         mainClassPath = "org.iotsplab.akiba.process.ZeroTrimmer",
         authors = listOf("Hornos3"),
