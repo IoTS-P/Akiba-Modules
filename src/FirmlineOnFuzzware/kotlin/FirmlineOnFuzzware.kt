@@ -126,8 +126,8 @@ class FirmlineOnFuzzware (
         logger.info("Generating fuzzware config...")
 
         // Directly use original binary file (sometimes trimmed)
-        val originalPath = originalFile.toPath()
-        originalFile.toPath().copyTo(rootDir.resolve("$id.bin"), overwrite = true)
+        val originalPath = usingFile.toPath()
+        usingFile.toPath().copyTo(rootDir.resolve("$id.bin"), overwrite = true)
         configPath.writeText(String.format(
             configTemplate,
             baseAddress,

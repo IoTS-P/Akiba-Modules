@@ -58,8 +58,8 @@ class FirmlineBaseChecker (
 
         val dbUrl = "jdbc:sqlite:${firmlineDb.absolutePathString()}"
         logger.info("Working out sha256...")
-        val sha256original = sha256sum(originalFile)
-        val sha256trimmed = processedFile ?.let { sha256sum(it) } ?: sha256original
+        val sha256original = sha256sum(usingFile)
+        val sha256trimmed = sha256original
         updateData(mapOf(
             "trimmed_sha256" to sha256trimmed,
             "original_sha256" to sha256original

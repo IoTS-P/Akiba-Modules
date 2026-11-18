@@ -146,7 +146,7 @@ class ConvertFirmToELF(
             stream.write(section.name.toByteArray().plus(byteArrayOf(0)))
             if (section.fileOffset != null) {
                 val content = ByteArray(section.size.toInt())
-                val bin = RandomAccessFile(if (useOriginalFile) originalFile else usingFile, "r")
+                val bin = RandomAccessFile(if (useOriginalFile) usingFile else usingFile, "r")
                 bin.seek(section.fileOffset!!)
                 val bytesRead = bin.read(content)
                 // If not enough bytes got, fill the rest with 0
@@ -165,7 +165,7 @@ class ConvertFirmToELF(
         val sections = listOf(
             MemorySection(
                 fileOffset = 0,
-                size = originalFile.toPath().fileSize(),
+                size = usingFile.toPath().fileSize(),
                 mapStart = api.toAddr(baseAddress),
                 description = "Program Flash",
                 name = "load",

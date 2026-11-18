@@ -101,7 +101,7 @@ class FirmXRay (
         try {
             val firmxrayCmd = "cd ${firmxrayRoot.absolutePathString()} && " +
                     "${conf.javaBinPath} -cp out:lib/ghidra.jar:lib/json.jar main.Main " +
-                    "${originalFile.absolutePath} Nordic"
+                    "${usingFile.absolutePath} Nordic"
             logger.debug("Execute: $firmxrayCmd")
             val builder = ProcessBuilder(*conf.cmdPrefix.toTypedArray(), firmxrayCmd)
                 .redirectErrorStream(true)

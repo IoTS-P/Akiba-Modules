@@ -110,7 +110,7 @@ class Firmline (
 
     private suspend fun runFirmline() = coroutineScope {
         // Firmline will move the file into its own directory, so we need to create a copy
-        val bin: Path = originalFile.toPath().let {
+        val bin: Path = usingFile.toPath().let {
             val tempFile = it.parent.resolve(it.name + "_tmpforFirmline")
             it.copyTo(tempFile, true)
             tempFile

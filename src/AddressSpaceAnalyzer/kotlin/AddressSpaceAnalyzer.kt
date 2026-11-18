@@ -90,7 +90,7 @@ class AddressSpaceAnalyzer(
                     "Program flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
             }
         else
-            sections.add(MemorySection(0, originalFile.toPath().fileSize(), baseAddress,
+            sections.add(MemorySection(0, usingFile.toPath().fileSize(), baseAddress,
                 "Program Flash", "load", PROT_READ or PROT_WRITE or PROT_EXEC))
         // Stack space
         sections.add(MemorySection(
